@@ -1,0 +1,58 @@
+service: feed-data-storage
+
+frameworkVersion: 1.32.0
+
+custom:
+   systemName: iotds
+   defaultRegion: us-east-1
+   region: ${opt:region, self:custom.defaultRegion}
+   stage: ${opt:stage, 'dev'}
+   objectPrefix: ${self:custom.systemName}-${self:service}-${self:custom.stage}
+
+package:
+   exclude:
+      - tests/**
+
+provider:
+   name: aws
+   stackTags:
+      CODE_VERSION: ${file(../../node_modules/silvermine-serverless-utils/src/get-code-version.js):both}
+      SYSTEM_NAME: ${self:custom.systemName}
+      SLS_SVC_NAME: ${self:service}
+   region: ${self:custom.region}
+   stage: ${self:custom.stage}
+
+resources:
+   Outputs:
+      FeedTableName:
+         Description: Name of the DynamoDB table that stores feed data.
+         Value: { 'Ref': 'FeedTable' }
+         Export:
+            Name: '${self:custom.objectPrefix}-FeedTableName'
+      FeedTableArn:
+         Description: ARN of the DynamoDB table that stores feed data.
+         Value: { 'Fn::GetAtt': [ 'FeedTable', 'Arn' ] }
+         Export:
+            Name: '${self:custom.objectPrefix}-FeedTableArn'
+   Resources:
+      FeedTable:
+         Type: 'AWS::DynamoDB::Table'
+         Properties:
+            TableName: '${self:custom.objectPrefix}'
+            AttributeDefinitions:
+               -
+                  AttributeName: feedAndFacet
+                  AttributeType: S
+               -
+                  AttributeName: timestamp
+                  AttributeType: S
+            KeySchema:
+               -
+                  AttributeName: feedAndFacet
+                  KeyType: HASH
+               -
+                  AttributeName: timestamp
+                  KeyType: RANGE
+            ProvisionedThroughput:
+               ReadCapacityUnits: 1
+               WriteCapacityUnits: 1

@@ -2,4 +2,4 @@
 --require ./tests/setup/before.ts
 --full-trace
 --bail
-tests/**/*.test.ts
+services/**/tests/**/*.test.ts
