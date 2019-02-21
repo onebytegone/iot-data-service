@@ -64,6 +64,7 @@ functions:
             Effect: 'Allow'
             Action:
                - 'dynamodb:Query'
+               - 'dynamodb:BatchGetItem'
                - 'dynamodb:BatchWriteItem'
             Resource:
                - { 'Fn::ImportValue': 'iotds-feed-data-storage-${self:custom.stage}-FeedTableArn' }

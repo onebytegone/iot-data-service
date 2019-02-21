@@ -1,6 +1,6 @@
 import _ from 'underscore';
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
-import util from 'util';
+import MovingMetricProcessor from './lib/MovingMetricProcessor';
 
 const docs = new DocumentClient();
 
@@ -10,9 +10,15 @@ export default class FeedWriter {
       private _feedTableName: string = process.env.FEED_TABLE_NAME as string
    ) { }
 
-   public write(feed: string, facet: string, feedEvent: FeedEvent): Promise<void> {
-      return this._writeToTable([
-         this._convertFeedEventToTableInsert(feed, facet, feedEvent),
+   public write(feed: string, facet: string, feedEvent: FeedEvent): Promise<void[]> {
+      const movingMetricProcessor = new MovingMetricProcessor();
+
+      // TODO: Should be using something like Q.allSettled here?
+      return Promise.all([
+         this._writeToTable([
+            this._convertFeedEventToTableInsert(feed, facet, feedEvent),
+         ]),
+         movingMetricProcessor.updateMovingMetrics(feed, facet, feedEvent).then(_.noop),
       ]);
    }
 
@@ -28,18 +34,16 @@ export default class FeedWriter {
       };
    }
 
-   protected _writeToTable(feedEventInserts: DocumentClient.WriteRequests): Promise<void> {
-      const batchWrite = util.promisify(docs.batchWrite.bind(docs));
-
+   protected _writeToTable(writeRequests: DocumentClient.WriteRequests): Promise<void> {
       const params: DocumentClient.BatchWriteItemInput = {
          RequestItems: {
-            [this._feedTableName]: feedEventInserts,
+            [this._feedTableName]: writeRequests,
          },
       };
 
       // TODO: Retry unprocessed items
       // https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_BatchWriteItem.html
-      return batchWrite(params).then(_.noop);
+      return docs.batchWrite(params).promise().then(_.noop);
    }
 
 }

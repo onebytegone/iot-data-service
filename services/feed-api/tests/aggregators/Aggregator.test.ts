@@ -3,6 +3,12 @@ import { expect } from 'chai';
 
 class TestAggregator extends Aggregator {
 
+   public calculateMovingMetric(): MovingMetricObject {
+      return {
+         value: NaN,
+      };
+   }
+
    public _groupEventsBySpan(events: FeedEvent[], span: string): { [timestamp: string]: FeedEvent[] } {
       return super._groupEventsBySpan(events, span);
    }

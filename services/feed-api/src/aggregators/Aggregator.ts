@@ -6,6 +6,8 @@ export default abstract class Aggregator {
 
    public static readonly type: string;
 
+   public abstract calculateMovingMetric(previousMetric: MovingMetricObject | undefined, newValue: number): MovingMetricObject;
+
    public aggregateEvents(events: FeedEvent[], span: string): FeedAggregationResponseEvent[] {
       const groupedEvents = this._groupEventsBySpan(events, span);
 
