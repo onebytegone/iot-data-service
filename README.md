@@ -9,7 +9,33 @@
 
 ## What?
 
+_TODO: Fill in_
+
 ## Why?
+
+_TODO: Fill in_
+
+## Setup
+
+```
+git clone git@github.com:onebytegone/iot-data-service.git
+cd iot-data-service
+npm install
+pushd ./services/feed-data-storage && sls deploy && popd
+cp ./services/feed-api/vars/example.yml ./services/feed-api/vars/dev.yml
+vi ./services/feed-api/vars/dev.yml # and change the JWT signing key
+pushd ./services/feed-api && sls deploy && popd
+```
+
+## Usage
+
+_TODO: Write docs_
+
+### POSTing data
+
+```
+curl -v "https://${APIGW_API_ID}.execute-api.us-east-1.amazonaws.com/dev/feed/FEED_NAME/FACET_NAME" -H "Authorization: Bearer ${JWT}" --data-binary '{ "value": 5 }' -H 'Content-Type: application/json'
+```
 
 ## License
 

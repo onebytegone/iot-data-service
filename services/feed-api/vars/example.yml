@@ -1,0 +1,3 @@
+# The secret for the JWT auth tokens. Please note the warning about this value's usage
+# found in serverless.yml
+jwtSigningSecret: EXAMPLE_SECRET_PLEASE_CHANGE_ME

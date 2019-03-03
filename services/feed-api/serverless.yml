@@ -1,0 +1,83 @@
+service: feed-api
+
+frameworkVersion: 1.32.0
+
+custom:
+   systemName: iotds
+   defaultRegion: us-east-1
+   region: ${opt:region, self:custom.defaultRegion}
+   stage: ${opt:stage, 'dev'}
+   objectPrefix: ${self:custom.systemName}-${self:service}-${self:custom.stage}
+   stageVars: ${file(./vars/${self:custom.stage}.yml)}
+   webpack:
+      webpackConfig: ../../webpack.config.js
+      includeModules:
+         forceExclude:
+            - aws-sdk
+         forceInclude:
+            - source-map-support
+         packagePath: ../../package.json
+
+plugins:
+   - serverless-webpack
+   - serverless-iam-roles-per-function
+
+package:
+   exclude:
+      - tests/**
+
+provider:
+   name: aws
+   runtime: nodejs8.10
+   stackTags:
+      CODE_VERSION: ${file(../../node_modules/silvermine-serverless-utils/src/get-code-version.js):both}
+      SYSTEM_NAME: ${self:custom.systemName}
+      SLS_SVC_NAME: ${self:service}
+   region: ${self:custom.region}
+   stage: ${self:custom.stage}
+   environment:
+      CODE_VERSION: ${file(../../node_modules/silvermine-serverless-utils/src/get-code-version.js):both}
+      SYSTEM_NAME: ${self:custom.systemName}
+      SLS_SVC_NAME: ${self:service}
+      SLS_STAGE: ${self:custom.stage}
+
+functions:
+   feed:
+      name: ${self:custom.objectPrefix}
+      handler: src/FeedHandler.handler
+      memorySize: 512
+      timeout: 4
+      events:
+         - http:
+            path: feed/{proxy+}
+            method: any
+            authorizer:
+               name: feedAuthorizer
+               # TODO: Consider switching to "Is JWT valid" checks in the authorizer and
+               # operation level validation in the function.
+               resultTtlInSeconds: 0
+            cors: true
+      environment:
+         FEED_TABLE_NAME: { 'Fn::ImportValue': 'iotds-feed-data-storage-${self:custom.stage}-FeedTableName' }
+      iamRoleStatements:
+         -
+            Effect: 'Allow'
+            Action:
+               - 'dynamodb:Query'
+               - 'dynamodb:BatchWriteItem'
+            Resource:
+               - { 'Fn::ImportValue': 'iotds-feed-data-storage-${self:custom.stage}-FeedTableArn' }
+
+   feedAuthorizer:
+      name: ${self:custom.objectPrefix}-authorizer
+      handler: src/FeedAuthorizerHandler.handler
+      memorySize: 128
+      timeout: 1
+      environment:
+         # WARNING: Do not view storing the plain-text secret for signing JWTs in an
+         # environment variable as a "best practice". This method has several attack
+         # vectors, e.g. exposed in git or developer's machine, exposed in AWS Console,
+         # and so on. However, when considering the data that is "protected" by this
+         # secret (i.e. simple IOT sensor data), it is not currently worth the overhead of
+         # encrypting this secret with KMS.
+         JWT_SIGNING_SECRET: ${self:custom.stageVars.jwtSigningSecret}

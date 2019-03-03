@@ -1,6 +1,6 @@
 {
    "include": [
-      "src/**/*.{ts,js}"
+      "services/**/src/**/*.{ts,js}"
    ],
    "exclude": [
       "**/*.d.ts"
